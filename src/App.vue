@@ -1,30 +1,14 @@
 <template>
   <div id="app">
     <div>
-      <div v-if="isHttps">
         <video id="video" :width="vWidth" :height="vHeight" style="border: 1px solid gray"></video>
         <div>
           <button @click="enableScan">扫码</button>
         </div>
-      </div>
-      <div v-else>
-        <input type="text" v-model="httpsHost" width="100" @change="saveHost('https')" />
-        <a :href="httpsJumpLink" target="_blank" rel="noopener noreferrer">跳转扫码</a>
-      </div>
     </div>
     <div>
       <textarea name="result" cols="50" rows="3" v-model="scanResult"></textarea>
-      <div>
-        <input type="text" v-model="httpHost" width="100" @change="saveHost('http')" />
-        <a
-          :href="httpJumpLink"
-          v-if="httpJumpLink && isHttps"
-          target="_blank"
-          rel="noopener noreferrer"
-        >跳转查询</a>
-      </div>
     </div>
-    <div v-if="!isHttps">
       <div>Fetch header</div>
       <div>
         <button @click="query">查询</button>
@@ -32,7 +16,6 @@
       <div>
         <textarea name="result" cols="30" rows="10" v-model="queryResult"></textarea>
       </div>
-    </div>
   </div>
 </template>
 
@@ -44,23 +27,8 @@ export default {
   components: {},
   name: 'App',
   setup() {
-    const httpsHost = ref(window.localStorage.getItem('httpsHost') ?? '')
-    const httpHost = ref(window.localStorage.getItem('httpHost') ?? '')
-    const httpJumpLink = ref('')
-    const httpsJumpLink = ref(
-      httpsHost.value ? 'https://' + httpsHost.value : ''
-    )
 
     const scanResult = ref('')
-    let params = new URL(window.location).searchParams
-    if (params.get('code')) {
-      scanResult.value = decodeURIComponent(params.get('code'))
-      httpJumpLink.value =
-        'http://' +
-        httpHost.value +
-        '/?code=' +
-        encodeURIComponent(scanResult.value.toString())
-    }
 
     const qrscan = new BrowserQRCodeReader()
 
@@ -113,8 +81,6 @@ export default {
         // qrscan.decodeFromImageUrl(imageUrl.value).then((value) => {
         scanResult.value = value
         qrscan.stopStreams()
-        httpJumpLink.value =
-          'http://' + httpHost.value + '/?code=' + encodeURIComponent(value)
       })
     }
 
@@ -125,7 +91,7 @@ export default {
       if (string && string.lastIndexOf('#') > 0) {
         let code = string.substring(string.lastIndexOf('#') + 1)
         let res = await fetch(
-          'http://wxcx.mem.gov.cn/certsearch/cert/scanQrcode',
+          'https://cors.unluckyninja.workers.dev/?http://wxcx.mem.gov.cn/certsearch/cert/scanQrcode',
           {
             method: 'POST',
             headers: {
@@ -139,12 +105,7 @@ export default {
       }
     }
 
-    const isHttps = computed(() => {
-      return window.location.protocol == 'https:'
-    })
-
     return {
-      isHttps,
       vWidth,
       vHeight,
       imageUrl,
@@ -152,10 +113,6 @@ export default {
       qrscan,
       enableScan,
       scanResult,
-      httpsHost,
-      httpHost,
-      httpJumpLink,
-      httpsJumpLink,
       // get info
       queryResult,
       query,
