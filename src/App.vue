@@ -1,21 +1,26 @@
 <template>
   <div id="app">
     <div>
-        <video id="video" :width="vWidth" :height="vHeight" style="border: 1px solid gray"></video>
-        <div>
-          <button @click="enableScan">扫码</button>
-        </div>
+      <video id="video" :width="vWidth" :height="vHeight" style="border: 1px solid gray"></video>
+      <div class="h-list">
+        <button @click="enableScan">扫码</button>
+        <button @click="cancelScan">取消</button>
+      </div>
     </div>
     <div>
       <textarea name="result" cols="50" rows="3" v-model="scanResult"></textarea>
     </div>
-      <div>Fetch header</div>
-      <div>
-        <button @click="query">查询</button>
+    <div>Fetch header</div>
+    <div>
+      <button @click="query">查询</button>
+    </div>
+    <div>
+      <div v-for="(v, index) in queryResult" :key="index">
+        <span>{{queryResult[index]}}</span>
+        <button @click="queryResult.splice(index, 1)">删除</button>
       </div>
-      <div>
-        <textarea name="result" cols="30" rows="10" v-model="queryResult"></textarea>
-      </div>
+      <button @click="clearQuery">清空</button>
+    </div>
   </div>
 </template>
 
@@ -27,38 +32,37 @@ export default {
   components: {},
   name: 'App',
   setup() {
-
     const scanResult = ref('')
 
     const qrscan = new BrowserQRCodeReader()
 
-    const imageUrl = ref('')
+    // const imageUrl = ref('')
 
-    const imageAdded = (e) => {
-      if (e.target.files.length == 0) {
-        return
-      }
-      let file = e.target.files[0]
-      let tempImage = new Image()
+    // const imageAdded = (e) => {
+    //   if (e.target.files.length == 0) {
+    //     return
+    //   }
+    //   let file = e.target.files[0]
+    //   let tempImage = new Image()
 
-      tempImage.src = URL.createObjectURL(file)
-      tempImage.onload = () => {
-        console.log(tempImage.naturalWidth)
-        console.log(tempImage.naturalHeight)
-        let width = Math.min(tempImage.naturalWidth, 300)
-        let height = (tempImage.naturalHeight / tempImage.naturalWidth) * width
-        console.log(width)
-        console.log(height)
+    //   tempImage.src = URL.createObjectURL(file)
+    //   tempImage.onload = () => {
+    //     console.log(tempImage.naturalWidth)
+    //     console.log(tempImage.naturalHeight)
+    //     let width = Math.min(tempImage.naturalWidth, 300)
+    //     let height = (tempImage.naturalHeight / tempImage.naturalWidth) * width
+    //     console.log(width)
+    //     console.log(height)
 
-        let canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = height
+    //     let canvas = document.createElement('canvas')
+    //     canvas.width = width
+    //     canvas.height = height
 
-        canvas.getContext('2d').drawImage(tempImage, 0, 0, width, height)
-        imageUrl.value = canvas.toDataURL('image/jpeg')
-        URL.revokeObjectURL(tempImage.src)
-      }
-    }
+    //     canvas.getContext('2d').drawImage(tempImage, 0, 0, width, height)
+    //     imageUrl.value = canvas.toDataURL('image/jpeg')
+    //     URL.revokeObjectURL(tempImage.src)
+    //   }
+    // }
 
     let vWidth = ref(300)
     let vHeight = ref(200)
@@ -71,8 +75,8 @@ export default {
         })
         .then((media) => {
           let { width, height } = media.getTracks()[0].getSettings()
-          let newHeight = Math.min(height, 300)
-          let newWidth = (width * newHeight) / height
+          let newHeight = Math.min(height, 500)
+          let newWidth = (width / height) * newHeight
           vWidth.value = newWidth
           vHeight.value = newHeight
           return media
@@ -84,7 +88,7 @@ export default {
       })
     }
 
-    const queryResult = ref('')
+    const queryResult = ref([])
 
     const query = async () => {
       let string = scanResult.value.toString()
@@ -95,21 +99,22 @@ export default {
           {
             method: 'POST',
             headers: {
+              credentials: 'include',
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ qrcode: code }),
           }
         )
 
-        queryResult.value = (await res.json()).content.certNum
+        queryResult.value.push((await res.json()).content.certNum)
       }
     }
 
     return {
       vWidth,
       vHeight,
-      imageUrl,
-      imageAdded,
+      // imageUrl,
+      // imageAdded,
       qrscan,
       enableScan,
       scanResult,
@@ -133,6 +138,12 @@ export default {
           encodeURIComponent(this.scanResult)
       }
     },
+    clearQuery(){
+      this.queryResult.length = 0
+    },
+    cancelScan(){
+      this.qrscan.stopStreams()
+    }
   },
 }
 </script>
@@ -145,5 +156,20 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+  & *{
+    font-size: 1.5rem;
+  }
+}
+div {
+  padding: 4px;
+}
+button {
+  margin: 8px;
+  user-select: none;
+  font-size: 1.2rem
+}
+.h-list{
+  display: flex;
+  justify-content: space-around;
 }
 </style>
